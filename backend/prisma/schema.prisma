@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  GROUP_ADMIN
+  SUBGROUP_ADMIN
+  MEMBER
+  BENEFICIARY
+  BOSS
+  GUEST
+}
+
+enum RecordStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum BeneficiaryCategory {
+  NORMAL
+  KIDNEY_DIALYSIS
+}
+
+enum PaymentMethod {
+  CBE
+  CASH
+}
+
+model MainTeam {
+  id        String     @id @default(cuid())
+  nameAm    String
+  nameEn    String?
+  status    RecordStatus @default(ACTIVE)
+  subTeams  SubTeam[]
+  beneficiaries Beneficiary[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model SubTeam {
+  id        String      @id @default(cuid())
+  nameAm    String
+  nameEn    String?
+  mainTeamId String
+  mainTeam  MainTeam    @relation(fields: [mainTeamId], references: [id], onDelete: Restrict)
+  status    RecordStatus @default(ACTIVE)
+  beneficiaries Beneficiary[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([mainTeamId, nameAm])
+}
+
+model Department {
+  id        String      @id @default(cuid())
+  nameAm    String
+  nameEn    String?
+  status    RecordStatus @default(ACTIVE)
+  members   Member[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@unique([nameAm])
+}
+
+model Member {
+  id          String       @id @default(cuid())
+  memberCode  String       @unique
+  fullNameAm  String
+  fullNameEn  String?
+  photoUrl    String?
+  email       String?
+  jobTitleAm  String?
+  jobTitleEn  String?
+  departmentId String?
+  department  Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  status      RecordStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  phones      MemberPhone[]
+}
+
+model MemberPhone {
+  id        String   @id @default(cuid())
+  memberId  String
+  member    Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  phone     String
+  label     String?
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Beneficiary {
+  id                 String              @id @default(cuid())
+  beneficiaryCode    String              @unique
+  fullNameAm         String
+  fullNameEn         String?
+  photoUrl           String?
+  category           BeneficiaryCategory @default(NORMAL)
+  addressAm          String?
+  addressEn          String?
+  region              String?
+  city                String?
+  subCity             String?
+  woreda              String?
+  kebele              String?
+  houseNumber         String?
+  houseLocationLat    Decimal?            @db.Decimal(10, 7)
+  houseLocationLng    Decimal?            @db.Decimal(10, 7)
+  mainTeamId          String?
+  mainTeam            MainTeam?            @relation(fields: [mainTeamId], references: [id], onDelete: SetNull)
+  subTeamId           String?
+  subTeam             SubTeam?             @relation(fields: [subTeamId], references: [id], onDelete: SetNull)
+  status              RecordStatus        @default(ACTIVE)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  phones              BeneficiaryPhone[]
+  paymentProfiles     BeneficiaryPaymentProfile[]
+  conditionHistory    ConditionHistory[]
+}
+
+model BeneficiaryPhone {
+  id             String      @id @default(cuid())
+  beneficiaryId  String
+  beneficiary    Beneficiary @relation(fields: [beneficiaryId], references: [id], onDelete: Cascade)
+  phone          String
+  label          String?
+  isPrimary      Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+}
+
+model BeneficiaryPaymentProfile {
+  id                     String         @id @default(cuid())
+  beneficiaryId          String
+  beneficiary            Beneficiary    @relation(fields: [beneficiaryId], references: [id], onDelete: Restrict)
+  method                 PaymentMethod
+  accountNumber          String?
+  accountHolderName      String?
+  relationshipToBeneficiary String?
+  isCurrent              Boolean        @default(true)
+  validFrom              DateTime       @default(now())
+  validTo                DateTime?
+  createdAt              DateTime       @default(now())
+}
+
+model ConditionHistory {
+  id             String      @id @default(cuid())
+  beneficiaryId  String
+  beneficiary    Beneficiary @relation(fields: [beneficiaryId], references: [id], onDelete: Restrict)
+  conditionType  String
+  descriptionAm  String
+  descriptionEn  String?
+  recordedByUserId String?
+  reason         String?
+  recordedAt     DateTime    @default(now())
+}
+
+model AuditEvent {
+  id             String   @id @default(cuid())
+  actorUserId    String?
+  action         String
+  entityType     String
+  entityId       String
+  beforeData     Json?
+  afterData      Json?
+  reason         String?
+  createdAt      DateTime @default(now())
+}
+
+model AppUser {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  passwordHash String
+  role         UserRole
+  memberId     String?  @unique
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

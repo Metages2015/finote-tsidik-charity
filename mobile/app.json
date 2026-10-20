@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Finote Tsidik",
+    "slug": "finote-tsidik",
+    "scheme": "finotetsidik",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": [
+      "expo-router"
+    ],
+    "android": {
+      "package": "org.finotetsidik.beneficiaries"
+    }
+  }
+}
